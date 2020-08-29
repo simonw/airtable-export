@@ -37,6 +37,68 @@ You can also export as JSON or as [newline delimited JSON](http://ndjson.org/) u
 
     airtable-export export base_id table1 table2 --key=key --ndjson
 
+## Running this using GitHub Actions
+
+[GitHub Actions](https://github.com/features/actions) is GitHub's workflow automation product. You can use it to run `airtable-export` in order to back up your Airtable data to a GitHub repository. Doing this gives you a visible commit history of changes you make to your Airtable data - like [this one](https://github.com/natbat/rockybeaches/commits/main/airtable).
+
+To run this for your own Airtable database you'll first need to add the following secrets to your GitHub repository:
+
+<dl>
+  <dt>AIRTABLE_BASE_ID</dt>
+  <dd>The base ID, a string beginning `app...`</dd>
+  <dt>AIRTABLE_KEY</dt>
+  <dd>Your Airtable API key</dd>
+  <dt>AIRTABLE_TABLES</dt>
+  <dd>A space separated list of the Airtable tables that you want to backup. If any of these contain spaces you will need to enclose them in single quotes, e.g. <samp>'My table with spaces in the name' OtherTableWithNoSpaces</samp></dd>
+</dl>
+
+Once you have set those secrets, add the following as a file called `.github/workflows/backup-airtable.yml`:
+```yaml
+name: Backup Airtable
+
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '32 * * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - uses: actions/cache@v2
+      name: Configure pip caching
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install airtable-export
+      run: |
+        pip install airtable-export
+    - name: Backup Airtable to backups/
+      env:
+        AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+        AIRTABLE_KEY: ${{ secrets.AIRTABLE_KEY }}
+        AIRTABLE_TABLES: ${{ secrets.AIRTABLE_TABLES }}
+      run: |-
+        airtable-export backups $AIRTABLE_BASE_ID $AIRTABLE_TABLES -v
+    - name: Commit and push if it changed
+      run: |-
+        git config user.name "Automated"
+        git config user.email "actions@users.noreply.github.com"
+        git add -A
+        timestamp=$(date -u)
+        git commit -m "Latest data: ${timestamp}" || exit 0
+        git push
+```
+This will run once a day (at 32 minutes past midnight UTC) and will also run if you manually click the "Run workflow" button, see [GitHub Actions: Manual triggers with workflow_dispatch](https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/).
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
