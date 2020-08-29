@@ -1,6 +1,7 @@
 import click
 import httpx
 from httpx import HTTPError
+import json as json_
 import pathlib
 from urllib.parse import quote, urlencode
 import time
@@ -22,12 +23,19 @@ import yaml
 @click.argument("tables", type=str, nargs=-1)
 @click.option("--key", envvar="AIRTABLE_KEY", help="Airtable API key", required=True)
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
-def cli(output_path, base_id, tables, key, verbose):
+@click.option("--json", is_flag=True, help="JSON format")
+@click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
+def cli(output_path, base_id, tables, key, verbose, json, ndjson):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
     for table in tables:
-        filename = "{}.yml".format(table)
+        ext = "yml"
+        if json:
+            ext = "json"
+        elif ndjson:
+            ext = "ndjson"
+        filename = "{}.{}".format(table, ext)
         records = []
         try:
             for record in all_records(base_id, table, key):
@@ -39,7 +47,13 @@ def cli(output_path, base_id, tables, key, verbose):
                 records.append(r)
         except HTTPError as exc:
             raise click.ClickException(exc)
-        (output / filename).write_text(yaml.dump(records, sort_keys=True), "utf-8")
+        if json:
+            dumped = json_.dumps(records, sort_keys=True, indent=4)
+        elif ndjson:
+            dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
+        else:
+            dumped = yaml.dump(records, sort_keys=True)
+        (output / filename).write_text(dumped, "utf-8")
         if verbose:
             click.echo(
                 "Wrote {} record{} to {}".format(

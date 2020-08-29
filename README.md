@@ -29,6 +29,14 @@ This example would create two files: `export/table1.yml` and `export/table2.yml`
 
 Rather than passing the API key using the `--key` option you can set it as an environment variable called `AIRTABLE_KEY`.
 
+## Export options
+
+By default the tool exports your data as YAML.
+
+You can also export as JSON or as [newline delimited JSON](http://ndjson.org/) using the `--json` or `--ndjson` options:
+
+    airtable-export export base_id table1 table2 --key=key --ndjson
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
