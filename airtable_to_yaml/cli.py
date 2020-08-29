@@ -1,5 +1,6 @@
 import click
 import httpx
+from httpx import HTTPError
 import pathlib
 from urllib.parse import quote, urlencode
 import time
@@ -28,13 +29,16 @@ def cli(output_path, base_id, tables, key, verbose):
     for table in tables:
         filename = "{}.yml".format(table)
         records = []
-        for record in all_records(base_id, table, key):
-            r = {
-                **{"airtable_id": record["id"]},
-                **record["fields"],
-                **{"airtable_createdTime": record["createdTime"]},
-            }
-            records.append(r)
+        try:
+            for record in all_records(base_id, table, key):
+                r = {
+                    **{"airtable_id": record["id"]},
+                    **record["fields"],
+                    **{"airtable_createdTime": record["createdTime"]},
+                }
+                records.append(r)
+        except HTTPError as exc:
+            raise click.ClickException(exc)
         (output / filename).write_text(yaml.dump(records, sort_keys=False), "utf-8")
         if verbose:
             click.echo(
@@ -53,11 +57,11 @@ def all_records(base_id, table, api_key, sleep=0.2):
         url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
         if offset:
             url += "?" + urlencode({"offset": offset})
-        data = httpx.get(
+        response = httpx.get(
             url, headers={"Authorization": "Bearer {}".format(api_key)}
-        ).json()
-        if "error" in data:
-            raise Exception(data)
+        )
+        response.raise_for_status()
+        data = response.json()
         offset = data.get("offset")
         yield from data["records"]
         if offset and sleep:
