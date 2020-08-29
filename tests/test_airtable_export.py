@@ -27,14 +27,14 @@ def test_airtable_export(mocker):
         actual = open("tablename.yml").read()
         expected = textwrap.dedent(
             """
-          - airtable_id: rec1
-            name: This is the name
-            address: |-
+          - address: |-
               Address line 1
               Address line 2
+            airtable_createdTime: '2020-04-18T18:50:27.000Z'
+            airtable_id: rec1
+            name: This is the name
             size: 441
             true_or_false: true
-            airtable_createdTime: '2020-04-18T18:50:27.000Z'
         """
         )
         assert expected.strip() == actual.strip()

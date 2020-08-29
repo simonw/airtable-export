@@ -39,7 +39,7 @@ def cli(output_path, base_id, tables, key, verbose):
                 records.append(r)
         except HTTPError as exc:
             raise click.ClickException(exc)
-        (output / filename).write_text(yaml.dump(records, sort_keys=False), "utf-8")
+        (output / filename).write_text(yaml.dump(records, sort_keys=True), "utf-8")
         if verbose:
             click.echo(
                 "Wrote {} record{} to {}".format(
