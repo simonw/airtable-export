@@ -1,17 +1,17 @@
-# airtable-to-yaml
+# airtable-export
 
-[![PyPI](https://img.shields.io/pypi/v/airtable-to-yaml.svg)](https://pypi.org/project/airtable-to-yaml/)
-[![Changelog](https://img.shields.io/github/v/release/simonw/airtable-to-yaml?include_prereleases&label=changelog)](https://github.com/simonw/airtable-to-yaml/releases)
-[![Tests](https://github.com/simonw/airtable-to-yaml/workflows/Test/badge.svg)](https://github.com/simonw/airtable-to-yaml/actions?query=workflow%3ATest)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/airtable-to-yaml/blob/master/LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/airtable-export.svg)](https://pypi.org/project/airtable-export/)
+[![Changelog](https://img.shields.io/github/v/release/simonw/airtable-export?include_prereleases&label=changelog)](https://github.com/simonw/airtable-export/releases)
+[![Tests](https://github.com/simonw/airtable-export/workflows/Test/badge.svg)](https://github.com/simonw/airtable-export/actions?query=workflow%3ATest)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/airtable-export/blob/master/LICENSE)
 
-Export Airtable data to YAML files on disk
+Export Airtable data to files on disk
 
 ## Installation
 
 Install this tool using `pip`:
 
-    $ pip install airtable-to-yaml
+    $ pip install airtable-export
 
 ## Usage
 
@@ -23,7 +23,7 @@ You will need to know the following information:
 
 You can export all of your data to a folder called `export/` by running the following:
 
-    airtable-to-yaml export base_id table1 table2 --key=key
+    airtable-export export base_id table1 table2 --key=key
 
 This example would create two files: `export/table1.yml` and `export/table2.yml`.
 
@@ -33,7 +33,7 @@ Rather than passing the API key using the `--key` option you can set it as an en
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
 
-    cd airtable-to-yaml
+    cd airtable-export
     python -mvenv venv
     source venv/bin/activate
 

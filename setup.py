@@ -13,25 +13,25 @@ def get_long_description():
 
 
 setup(
-    name="airtable-to-yaml",
-    description="Export Airtable data to YAML files on disk",
+    name="airtable-export",
+    description="Export Airtable data to files on disk",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     author="Simon Willison",
-    url="https://github.com/simonw/airtable-to-yaml",
+    url="https://github.com/simonw/airtable-export",
     project_urls={
-        "Issues": "https://github.com/simonw/airtable-to-yaml/issues",
-        "CI": "https://github.com/simonw/airtable-to-yaml/actions",
-        "Changelog": "https://github.com/simonw/airtable-to-yaml/releases",
+        "Issues": "https://github.com/simonw/airtable-export/issues",
+        "CI": "https://github.com/simonw/airtable-export/actions",
+        "Changelog": "https://github.com/simonw/airtable-export/releases",
     },
     license="Apache License, Version 2.0",
     version=VERSION,
-    packages=["airtable_to_yaml"],
+    packages=["airtable_export"],
     entry_points="""
         [console_scripts]
-        airtable-to-yaml=airtable_to_yaml.cli:cli
+        airtable-export=airtable_export.cli:cli
     """,
     install_requires=["click", "PyYAML", "httpx"],
     extras_require={"test": ["pytest", "pytest-mock"]},
-    tests_require=["airtable-to-yaml[test]"],
+    tests_require=["airtable-export[test]"],
 )

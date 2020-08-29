@@ -1,5 +1,5 @@
 from click.testing import CliRunner
-from airtable_to_yaml import cli
+from airtable_export import cli
 import httpx
 import textwrap
 
@@ -12,7 +12,7 @@ def test_version():
         assert result.output.startswith("cli, version ")
 
 
-def test_airtable_to_yaml(mocker):
+def test_airtable_export(mocker):
     m = mocker.patch.object(cli, "httpx")
     m.get.return_value = mocker.Mock()
     m.get.return_value.status_code = 200
@@ -40,7 +40,7 @@ def test_airtable_to_yaml(mocker):
         assert expected.strip() == actual.strip()
 
 
-def test_airtable_to_yaml_error(mocker):
+def test_airtable_export_error(mocker):
     m = mocker.patch.object(cli, "httpx")
     m.get.return_value = mocker.Mock()
     m.get.return_value.status_code = 401
