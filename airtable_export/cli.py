@@ -5,7 +5,7 @@ import json as json_
 import pathlib
 from urllib.parse import quote, urlencode
 import time
-import yaml
+import yaml as yaml_
 
 
 @click.command()
@@ -25,17 +25,14 @@ import yaml
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
 @click.option("--json", is_flag=True, help="JSON format")
 @click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
-def cli(output_path, base_id, tables, key, verbose, json, ndjson):
+@click.option("--yaml", is_flag=True, help="YAML format (default)")
+def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
+    if not json and not ndjson and not yaml:
+        yaml = True
     for table in tables:
-        ext = "yml"
-        if json:
-            ext = "json"
-        elif ndjson:
-            ext = "ndjson"
-        filename = "{}.{}".format(table, ext)
         records = []
         try:
             for record in all_records(base_id, table, key):
@@ -47,17 +44,28 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson):
                 records.append(r)
         except HTTPError as exc:
             raise click.ClickException(exc)
+        filenames = []
         if json:
+            filename = "{}.json".format(table)
             dumped = json_.dumps(records, sort_keys=True, indent=4)
-        elif ndjson:
+            (output / filename).write_text(dumped, "utf-8")
+            filenames.append(output / filename)
+        if ndjson:
+            filename = "{}.ndjson".format(table)
             dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
-        else:
-            dumped = yaml.dump(records, sort_keys=True)
-        (output / filename).write_text(dumped, "utf-8")
+            (output / filename).write_text(dumped, "utf-8")
+            filenames.append(output / filename)
+        if yaml:
+            filename = "{}.yml".format(table)
+            dumped = yaml_.dump(records, sort_keys=True)
+            (output / filename).write_text(dumped, "utf-8")
+            filenames.append(output / filename)
         if verbose:
             click.echo(
                 "Wrote {} record{} to {}".format(
-                    len(records), "" if len(records) == 1 else "s", (output / filename)
+                    len(records),
+                    "" if len(records) == 1 else "s",
+                    ", ".join(map(str, filenames)),
                 ),
                 err=True,
             )
@@ -91,4 +99,4 @@ def str_representer(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
 
-yaml.add_representer(str, str_representer)
+yaml_.add_representer(str, str_representer)

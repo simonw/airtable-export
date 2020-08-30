@@ -37,6 +37,11 @@ You can also export as JSON or as [newline delimited JSON](http://ndjson.org/) u
 
     airtable-export export base_id table1 table2 --key=key --ndjson
 
+You can pass multiple format options at once. This command will create a `.json`, `.yml` and `.ndjson` file for each exported table:
+
+    airtable-export export base_id table1 table2 \
+        --key=key --ndjson --yaml --json
+
 ## Running this using GitHub Actions
 
 [GitHub Actions](https://github.com/features/actions) is GitHub's workflow automation product. You can use it to run `airtable-export` in order to back up your Airtable data to a GitHub repository. Doing this gives you a visible commit history of changes you make to your Airtable data - like [this one](https://github.com/natbat/rockybeaches/commits/main/airtable).
