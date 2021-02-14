@@ -103,6 +103,35 @@ def test_airtable_export(mocked, format, expected):
         ).read()
         assert expected.strip() == actual.strip()
 
+@pytest.mark.parametrize("format,expected", FORMATS)
+def test_airtable_export_with_view_name(mocked, format, expected):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        args = [
+            ".",
+            "appZOGvNJPXCQ205F",
+            "tablename:viewname",
+            "-v",
+            "--key",
+            "x",
+            "--{}".format(format),
+        ]
+        result = runner.invoke(
+            cli.cli,
+            args,
+        )
+        assert 0 == result.exit_code
+        assert (
+            "Wrote 2 records to tablename_viewname.{}".format(
+                "yml" if format == "yaml" else format
+            )
+            == result.output.strip()
+        )
+        actual = open(
+            "tablename_viewname.{}".format("yml" if format == "yaml" else format)
+        ).read()
+        assert expected.strip() == actual.strip()
+
 
 def test_all_three_formats_at_once(mocked):
     runner = CliRunner()
