@@ -54,7 +54,7 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
         records = []
         try:
             db_batch = []
-            for record in all_records(base_id, table, key):
+            for record in all_records(base_id, table, key, view=view):
                 r = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
