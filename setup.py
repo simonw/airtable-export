@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = "0.4"
+VERSION = "0.5"
 
 
 def get_long_description():
@@ -31,7 +31,7 @@ setup(
         [console_scripts]
         airtable-export=airtable_export.cli:cli
     """,
-    install_requires=["click", "PyYAML", "httpx"],
+    install_requires=["click", "PyYAML", "httpx", "sqlite-utils"],
     extras_require={"test": ["pytest", "pytest-mock"]},
     tests_require=["airtable-export[test]"],
 )

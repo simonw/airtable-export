@@ -4,6 +4,7 @@ from httpx import HTTPError
 import json as json_
 import pathlib
 from urllib.parse import quote, urlencode
+import sqlite_utils
 import time
 import yaml as yaml_
 
@@ -26,12 +27,23 @@ import yaml as yaml_
 @click.option("--json", is_flag=True, help="JSON format")
 @click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
 @click.option("--yaml", is_flag=True, help="YAML format (default)")
-def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml):
+@click.option(
+    "--sqlite",
+    type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
+    help="Export to this SQLite database",
+)
+def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
-    if not json and not ndjson and not yaml:
+    if not json and not ndjson and not yaml and not sqlite:
         yaml = True
+    write_batch = lambda table, batch: None
+    if sqlite:
+        db = sqlite_utils.Database(sqlite)
+        write_batch = lambda table, batch: db[table].insert_all(
+            db_batch, pk="airtable_id", replace=True, alter=True
+        )
     for table_and_view in tables:
         parts = table_and_view.split(":")
         view = None
@@ -41,15 +53,21 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml):
             table = parts[0]
         records = []
         try:
-            for record in all_records(base_id, table, key, view=view):
+            db_batch = []
+            for record in all_records(base_id, table, key):
                 r = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
                     **{"airtable_createdTime": record["createdTime"]},
                 }
                 records.append(r)
+                db_batch.append(r)
+                if len(db_batch) == 100:
+                    write_batch(table, db_batch)
+                    db_batch = []
         except HTTPError as exc:
             raise click.ClickException(exc)
+        write_batch(table, db_batch)
         filenames = []
         if json:
             filename = "{}{}.json".format(table, "_" + view if view else "")

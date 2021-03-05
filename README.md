@@ -42,6 +42,19 @@ You can pass multiple format options at once. This command will create a `.json`
     airtable-export export base_id table1 table2 \
         --key=key --ndjson --yaml --json
 
+### SQLite database export
+
+You can export tables to a SQLite database file using the `--sqlite database.db` option:
+
+    airtable-export export base_id table1 table2 \
+        --key=key --sqlite database.db
+
+This can be combined with other format options. If you only specify `--sqlite` the export directory argument will be ignored.
+
+The SQLite database will have a table created for each table you export. Those tables will have a primary key column called `airtable_id`.
+
+If you run this command against an existing SQLite database records with matching primary keys will be over-written by new records from the export.
+
 ## Running this using GitHub Actions
 
 [GitHub Actions](https://github.com/features/actions) is GitHub's workflow automation product. You can use it to run `airtable-export` in order to back up your Airtable data to a GitHub repository. Doing this gives you a visible commit history of changes you make to your Airtable data - like [this one](https://github.com/natbat/rockybeaches/commits/main/airtable).
