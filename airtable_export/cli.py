@@ -44,11 +44,17 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
         write_batch = lambda table, batch: db[table].insert_all(
             db_batch, pk="airtable_id", replace=True, alter=True
         )
-    for table in tables:
+    for table_and_view in tables:
+        parts = table_and_view.split(":")
+        view = None
+        if len(parts) == 2:
+            table, view = parts
+        else:
+            table = parts[0]
         records = []
         try:
             db_batch = []
-            for record in all_records(base_id, table, key):
+            for record in all_records(base_id, table, key, view=view):
                 r = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
@@ -64,17 +70,17 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
         write_batch(table, db_batch)
         filenames = []
         if json:
-            filename = "{}.json".format(table)
+            filename = "{}{}.json".format(table, "_" + view if view else "")
             dumped = json_.dumps(records, sort_keys=True, indent=4)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)
         if ndjson:
-            filename = "{}.ndjson".format(table)
+            filename = "{}{}.ndjson".format(table, "_" + view if view else "")
             dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)
         if yaml:
-            filename = "{}.yml".format(table)
+            filename = "{}{}.yml".format(table, "_" + view if view else "")
             dumped = yaml_.dump(records, sort_keys=True)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)
@@ -89,16 +95,24 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
             )
 
 
-def all_records(base_id, table, api_key, sleep=0.2):
+def all_records(base_id, table, api_key, view=None, sleep=0.2):
     first = True
     offset = None
     while first or offset:
         first = False
         url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
+        
+        query = {}
         if offset:
-            url += "?" + urlencode({"offset": offset})
+            query["offset"] = offset
+        if view:
+            query["view"] = view
+        
+        if query:
+            url += "?" + urlencode(query)
+
         response = httpx.get(
-            url, headers={"Authorization": "Bearer {}".format(api_key)}
+            url, headers={"Authorization": "Bearer {}".format(api_key), "User-Agent": "curl/7.64.1"}
         )
         response.raise_for_status()
         data = response.json()
