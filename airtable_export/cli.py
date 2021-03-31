@@ -112,7 +112,7 @@ def all_records(base_id, table, api_key, view=None, sleep=0.2):
             url += "?" + urlencode(query)
 
         response = httpx.get(
-            url, headers={"Authorization": "Bearer {}".format(api_key)}
+            url, headers={"Authorization": "Bearer {}".format(api_key), "User-Agent": "curl/7.64.1"}
         )
         response.raise_for_status()
         data = response.json()
