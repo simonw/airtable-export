@@ -23,6 +23,7 @@ import yaml as yaml_
 )
 @click.argument("tables", type=str, nargs=-1)
 @click.option("--key", envvar="AIRTABLE_KEY", help="Airtable API key", required=True)
+@click.option("--user-agent", help="User agent to use for requests", default="")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
 @click.option("--json", is_flag=True, help="JSON format")
 @click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
@@ -32,7 +33,7 @@ import yaml as yaml_
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     help="Export to this SQLite database",
 )
-def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
+def cli(output_path, base_id, tables, key, user_agent, verbose, json, ndjson, yaml, sqlite):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
@@ -48,7 +49,7 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
         records = []
         try:
             db_batch = []
-            for record in all_records(base_id, table, key):
+            for record in all_records(base_id, table, key, user_agent=user_agent):
                 r = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
@@ -89,7 +90,11 @@ def cli(output_path, base_id, tables, key, verbose, json, ndjson, yaml, sqlite):
             )
 
 
-def all_records(base_id, table, api_key, sleep=0.2):
+def all_records(base_id, table, api_key, sleep=0.2, user_agent=""):
+    headers={"Authorization": "Bearer {}".format(api_key)}
+    if user_agent != "":
+        headers["user-agent"]=user_agent
+
     first = True
     offset = None
     while first or offset:
@@ -98,7 +103,7 @@ def all_records(base_id, table, api_key, sleep=0.2):
         if offset:
             url += "?" + urlencode({"offset": offset})
         response = httpx.get(
-            url, headers={"Authorization": "Bearer {}".format(api_key)}
+            url, headers=headers
         )
         response.raise_for_status()
         data = response.json()
