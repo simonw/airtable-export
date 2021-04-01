@@ -42,14 +42,6 @@ You can pass multiple format options at once. This command will create a `.json`
     airtable-export export base_id table1 table2 \
         --key=key --ndjson --yaml --json
 
-## Request options
-
-By default the tool uses [python-httpx](https://www.python-httpx.org)'s default configurations.
-
-You can override the `user-agent` using the `--user-agent` option:
-
-    airtable-export export base_id table1 table2 --key=key --user-agent "Airtable Export Robot"
-
 ### SQLite database export
 
 You can export tables to a SQLite database file using the `--sqlite database.db` option:
@@ -62,6 +54,14 @@ This can be combined with other format options. If you only specify `--sqlite` t
 The SQLite database will have a table created for each table you export. Those tables will have a primary key column called `airtable_id`.
 
 If you run this command against an existing SQLite database records with matching primary keys will be over-written by new records from the export.
+
+## Request options
+
+By default the tool uses [python-httpx](https://www.python-httpx.org)'s default configurations.
+
+You can override the `user-agent` using the `--user-agent` option:
+
+    airtable-export export base_id table1 table2 --key=key --user-agent "Airtable Export Robot"
 
 ## Running this using GitHub Actions
 
