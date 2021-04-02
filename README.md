@@ -77,7 +77,7 @@ name: Backup Airtable
 on:
   workflow_dispatch:
   schedule:
-  - cron: '32 * * * *'
+  - cron: '32 0 * * *'
 
 jobs:
   build:
