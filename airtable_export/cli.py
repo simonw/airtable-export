@@ -33,7 +33,9 @@ import yaml as yaml_
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     help="Export to this SQLite database",
 )
-def cli(output_path, base_id, tables, key, user_agent, verbose, json, ndjson, yaml, sqlite):
+def cli(
+    output_path, base_id, tables, key, user_agent, verbose, json, ndjson, yaml, sqlite
+):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
@@ -91,7 +93,7 @@ def cli(output_path, base_id, tables, key, user_agent, verbose, json, ndjson, ya
 
 
 def all_records(base_id, table, api_key, sleep=0.2, user_agent=None):
-    headers={"Authorization": "Bearer {}".format(api_key)}
+    headers = {"Authorization": "Bearer {}".format(api_key)}
     if user_agent is not None:
         headers["user-agent"] = user_agent
 
@@ -102,9 +104,7 @@ def all_records(base_id, table, api_key, sleep=0.2, user_agent=None):
         url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
         if offset:
             url += "?" + urlencode({"offset": offset})
-        response = httpx.get(
-            url, headers=headers
-        )
+        response = httpx.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
         offset = data.get("offset")
