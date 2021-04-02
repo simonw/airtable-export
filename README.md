@@ -55,6 +55,14 @@ The SQLite database will have a table created for each table you export. Those t
 
 If you run this command against an existing SQLite database records with matching primary keys will be over-written by new records from the export.
 
+## Request options
+
+By default the tool uses [python-httpx](https://www.python-httpx.org)'s default configurations.
+
+You can override the `user-agent` using the `--user-agent` option:
+
+    airtable-export export base_id table1 table2 --key=key --user-agent "Airtable Export Robot"
+
 ## Running this using GitHub Actions
 
 [GitHub Actions](https://github.com/features/actions) is GitHub's workflow automation product. You can use it to run `airtable-export` in order to back up your Airtable data to a GitHub repository. Doing this gives you a visible commit history of changes you make to your Airtable data - like [this one](https://github.com/natbat/rockybeaches/commits/main/airtable).
