@@ -23,7 +23,7 @@ import yaml as yaml_
 )
 @click.argument("tables", type=str, nargs=-1)
 @click.option("--key", envvar="AIRTABLE_KEY", help="Airtable API key", required=True)
-@click.option("--user-agent", help="User agent to use for requests", default="")
+@click.option("--user-agent", help="User agent to use for requests")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
 @click.option("--json", is_flag=True, help="JSON format")
 @click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
@@ -90,10 +90,10 @@ def cli(output_path, base_id, tables, key, user_agent, verbose, json, ndjson, ya
             )
 
 
-def all_records(base_id, table, api_key, sleep=0.2, user_agent=""):
+def all_records(base_id, table, api_key, sleep=0.2, user_agent=None):
     headers={"Authorization": "Bearer {}".format(api_key)}
-    if user_agent != "":
-        headers["user-agent"]=user_agent
+    if user_agent is not None:
+        headers["user-agent"] = user_agent
 
     first = True
     offset = None
