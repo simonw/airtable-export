@@ -23,6 +23,7 @@ import yaml as yaml_
 )
 @click.argument("tables", type=str, nargs=-1)
 @click.option("--key", envvar="AIRTABLE_KEY", help="Airtable API key", required=True)
+@click.option("--http-read-timeout", help="Timeout (in seconds) for network read operations", default=5)
 @click.option("--user-agent", help="User agent to use for requests")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
 @click.option("--json", is_flag=True, help="JSON format")
@@ -34,7 +35,7 @@ import yaml as yaml_
     help="Export to this SQLite database",
 )
 def cli(
-    output_path, base_id, tables, key, user_agent, verbose, json, ndjson, yaml, sqlite
+    output_path, base_id, tables, key, http_read_timeout, user_agent, verbose, json, ndjson, yaml, sqlite
 ):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
@@ -51,7 +52,7 @@ def cli(
         records = []
         try:
             db_batch = []
-            for record in all_records(base_id, table, key, user_agent=user_agent):
+            for record in all_records(base_id, table, key, http_read_timeout, user_agent=user_agent):
                 r = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
@@ -92,10 +93,14 @@ def cli(
             )
 
 
-def all_records(base_id, table, api_key, sleep=0.2, user_agent=None):
+def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agent=None):
     headers = {"Authorization": "Bearer {}".format(api_key)}
     if user_agent is not None:
         headers["user-agent"] = user_agent
+
+    # If left unconfigured, httpx defaults to 5s timeout. Use the same here.
+    timeout=httpx.Timeout(5, read=http_read_timeout)
+    client=httpx.Client(timeout=timeout)
 
     first = True
     offset = None
@@ -104,7 +109,7 @@ def all_records(base_id, table, api_key, sleep=0.2, user_agent=None):
         url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
         if offset:
             url += "?" + urlencode({"offset": offset})
-        response = httpx.get(url, headers=headers)
+        response = client.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
         offset = data.get("offset")
