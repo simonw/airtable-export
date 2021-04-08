@@ -63,6 +63,10 @@ You can override the `user-agent` using the `--user-agent` option:
 
     airtable-export export base_id table1 table2 --key=key --user-agent "Airtable Export Robot"
 
+You can override the [timeout during a network read operation](https://www.python-httpx.org/advanced/#fine-tuning-the-configuration) using the `--http-read-timeout` option. If not set, this defaults to 5s.
+
+    airtable-export export base_id table1 table2 --key=key --http-read-timeout 60
+
 ## Running this using GitHub Actions
 
 [GitHub Actions](https://github.com/features/actions) is GitHub's workflow automation product. You can use it to run `airtable-export` in order to back up your Airtable data to a GitHub repository. Doing this gives you a visible commit history of changes you make to your Airtable data - like [this one](https://github.com/natbat/rockybeaches/commits/main/airtable).
