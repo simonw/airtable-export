@@ -26,7 +26,6 @@ import yaml as yaml_
 @click.option(
     "--http-read-timeout",
     help="Timeout (in seconds) for network read operations",
-    default=5,
 )
 @click.option("--user-agent", help="User agent to use for requests")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
@@ -114,9 +113,11 @@ def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agen
     if user_agent is not None:
         headers["user-agent"] = user_agent
 
-    # If left unconfigured, httpx defaults to 5s timeout. Use the same here.
-    timeout = httpx.Timeout(5, read=http_read_timeout)
-    client = httpx.Client(timeout=timeout)
+    if http_read_timeout:
+        timeout = httpx.Timeout(5, read=http_read_timeout)
+        client = httpx.Client(timeout=timeout)
+    else:
+        client = httpx
 
     first = True
     offset = None
