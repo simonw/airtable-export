@@ -26,6 +26,7 @@ import yaml as yaml_
 @click.option(
     "--http-read-timeout",
     help="Timeout (in seconds) for network read operations",
+    type=int
 )
 @click.option("--user-agent", help="User agent to use for requests")
 @click.option("-v", "--verbose", is_flag=True, help="Verbose output")
