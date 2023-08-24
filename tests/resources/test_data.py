@@ -62,6 +62,17 @@ class TestData:
 {"address": "Address line 1\nAddress line 2", "airtable_createdTime": "2020-04-18T18:58:27.000Z", "airtable_id": "rec2", "name": "This is the name 2", "size": 442, "true_or_false": false, "weird name: what is this?": "there"}
        """,
         ),
+    (
+        "csv",
+        "csv",
+        r"""
+airtable_id,name,address,weird name: what is this?,size,true_or_false,airtable_createdTime
+rec1,This is the name,"Address line 1
+Address line 2",hello,441,True,2020-04-18T18:50:27.000Z
+rec2,This is the name 2,"Address line 1
+Address line 2",there,442,False,2020-04-18T18:58:27.000Z
+       """,
+        ),
     ]
     AIRTABLE_RESPONSE = {
         "records": [

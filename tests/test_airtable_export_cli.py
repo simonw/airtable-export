@@ -42,7 +42,7 @@ class TestAirtableExportCli:
             assert expected.strip() == actual.strip()
 
     @pytest.mark.parametrize("flag,file_format,expected", TestData.FORMATS)
-    def test_export_to_yaml_json_and_ndjson_at_the_same_time(self, mocked_httpx, flag, file_format, expected):
+    def test_export_to_yaml_json_ndjson_and_csv_at_the_same_time(self, mocked_httpx, flag, file_format, expected):
         runner = CliRunner()
         table_name = TestData.ANY_TABLE_NAME
         file_directory = "/tmp/dump"
@@ -57,13 +57,14 @@ class TestAirtableExportCli:
                 "--yaml",
                 "--json",
                 "--ndjson",
+                "--csv",
             ]
             result = runner.invoke(
                 cli.cli,
                 args,
             )
             assert 0 == result.exit_code, result.stdout
-            assert (f"Wrote 2 records to {table_name}.json, {table_name}.ndjson, {table_name}.yml" == result.output.strip())
+            assert (f"Wrote 2 records to {table_name}.json, {table_name}.ndjson, {table_name}.yml, {table_name}.csv" == result.output.strip())
             actual = open(f"{file_directory}/{table_name}.{file_format}").read()
             assert expected.strip() == actual.strip()
 

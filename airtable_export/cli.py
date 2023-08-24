@@ -9,6 +9,7 @@ from airtable_export.exporter.json_exporter import JsonExporter
 from airtable_export.exporter.nd_json_exporter import NDJsonExporter
 from airtable_export.sql.sql_repository import SqlLiteRepository
 from airtable_export.exporter.yaml_exporter import YamlExporter
+from airtable_export.exporter.csv_exporter import CsvExporter
 
 
 @click.command()
@@ -40,6 +41,7 @@ from airtable_export.exporter.yaml_exporter import YamlExporter
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     help="Export to this SQLite database",
 )
+@click.option("--csv", is_flag=True, help="CSV format")
 def cli(
     output_path,
     base_id,
@@ -52,13 +54,14 @@ def cli(
     ndjson,
     yaml,
     sqlite,
+    csv
 ):
     # Export Airtable data to JSON/YAML/SQL-Lite file on disk
     file_path = pathlib.Path(output_path)
     file_path.mkdir(parents=True, exist_ok=True)
     airtable_client = AirtableClient(base_id, key, http_read_timeout, user_agent)
     logger = ClickLogger()
-    if not json and not ndjson and not yaml and not sqlite:
+    if not json and not ndjson and not yaml and not sqlite and not csv:
         yaml = True
     if sqlite:
         path_sqlite = file_path / sqlite
@@ -80,6 +83,9 @@ def cli(
         if yaml:
             yaml_file = YamlExporter.generate_file(file_path, records, table_name)
             filenames.append(yaml_file)
+        if csv:
+            csv_file = CsvExporter.generate_file(file_path, records, table_name)
+            filenames.append(csv_file)
         if verbose:
             logger.log(records, filenames)
 
