@@ -63,10 +63,13 @@ def cli(
     if sqlite:
         path_sqlite = file_path / sqlite
         sql_repository = SqlLiteRepository(path_sqlite)
+
     for table_name in tables:
         records = airtable_client.get_all_records(table_name)
+
         if sqlite:
             sql_repository.write(table_name, records)
+
         filenames = []
         if json:
             json_file = JsonExporter.generate_file(file_path, records, table_name)
