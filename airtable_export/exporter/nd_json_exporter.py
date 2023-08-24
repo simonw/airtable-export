@@ -8,4 +8,4 @@ class NDJsonExporter:
         dumped = "\n".join(json.dumps(r, sort_keys=True) for r in records)
         ndjson_filepath = output / filename
         ndjson_filepath.write_text(dumped, "utf-8")
-        return ndjson_filepath
+        return ndjson_filepath.name

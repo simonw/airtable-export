@@ -1,4 +1,5 @@
 import time
+import httpx
 import click
 
 from httpx import HTTPError
@@ -11,6 +12,15 @@ class AirtableClient:
         self.api_key = api_key
         self.http_read_timeout = http_read_timeout
         self.user_agent = user_agent
+        if self.http_read_timeout:
+            timeout = httpx.Timeout(5, read=self.http_read_timeout)
+            self._httpx = httpx.Client(timeout=timeout)
+        else:
+            self._httpx = httpx
+
+    @property
+    def httpx(self):
+        return self._httpx
 
     def get_all_records(self, table_name):
         try:
@@ -31,11 +41,6 @@ class AirtableClient:
         headers = {"Authorization": f"Bearer {self.api_key}"}
         if self.user_agent is not None:
             headers["user-agent"] = self.user_agent
-        if self.http_read_timeout:
-            timeout = httpx.Timeout(5, read=self.http_read_timeout)
-            client = httpx.Client(timeout=timeout)
-        else:
-            client = httpx
         first = True
         offset = None
         while first or offset:
@@ -43,7 +48,7 @@ class AirtableClient:
             url = f"https://api.airtable.com/v0/{self.base_id}/{quote(table_name)}"
             if offset:
                 url += "?" + urlencode({"offset": offset})
-            response = client.get(url, headers=headers)
+            response = self.httpx.get(url, headers=headers)
             response.raise_for_status()
             json_data = response.json()
             offset = json_data.get("offset")

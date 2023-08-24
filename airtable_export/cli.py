@@ -1,12 +1,14 @@
 import click
 import pathlib
 
+import yaml as yaml_
+
 from airtable_export.airtable.airtable_client import AirtableClient
 from airtable_export.logger.click_logger import ClickLogger
-from airtable_export.exporters.json_exporter import JsonExporter
-from airtable_export.exporters.nd_json_exporter import NDJsonExporter
+from airtable_export.exporter.json_exporter import JsonExporter
+from airtable_export.exporter.nd_json_exporter import NDJsonExporter
 from airtable_export.sql.sql_repository import SqlLiteRepository
-from airtable_export.exporters.yaml_exporter import YamlExporter
+from airtable_export.exporter.yaml_exporter import YamlExporter
 
 
 @click.command()
@@ -46,9 +48,9 @@ def cli(
     http_read_timeout,
     user_agent,
     verbose,
-    is_json,
-    is_ndjson,
-    is_yaml,
+    json,
+    ndjson,
+    yaml,
     sqlite,
 ):
     # Export Airtable data to JSON/YAML/SQL-Lite file on disk
@@ -56,6 +58,8 @@ def cli(
     file_path.mkdir(parents=True, exist_ok=True)
     airtable_client = AirtableClient(base_id, key, http_read_timeout, user_agent)
     logger = ClickLogger()
+    if not json and not ndjson and not yaml and not sqlite:
+        yaml = True
     if sqlite:
         path_sqlite = file_path / sqlite
         sql_repository = SqlLiteRepository(path_sqlite)
@@ -64,14 +68,17 @@ def cli(
         if sqlite:
             sql_repository.write(table_name, records)
         filenames = []
-        if is_json:
+        if json:
             json_file = JsonExporter.generate_file(file_path, records, table_name)
             filenames.append(json_file)
-        if is_ndjson:
+        if ndjson:
             nd_json_file = NDJsonExporter.generate_file(file_path, records, table_name)
             filenames.append(nd_json_file)
-        if is_yaml or (not filenames and not sqlite):
+        if yaml:
             yaml_file = YamlExporter.generate_file(file_path, records, table_name)
             filenames.append(yaml_file)
         if verbose:
             logger.log(records, filenames)
+
+
+yaml_.add_representer(str, YamlExporter.presenter)

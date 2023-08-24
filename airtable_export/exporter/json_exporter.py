@@ -8,4 +8,4 @@ class JsonExporter:
         dumped = json.dumps(records, sort_keys=True, indent=4)
         json_filepath = file_path / filename
         json_filepath.write_text(dumped, "utf-8")
-        return json_filepath
+        return json_filepath.name
