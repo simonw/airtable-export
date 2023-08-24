@@ -1,5 +1,4 @@
 import click
-from httpx import HTTPError
 import pathlib
 
 from airtable_export.airtable.airtable_client import AirtableClient
@@ -65,22 +64,19 @@ def cli(
         is_yaml = True
     for table_name in tables:
         records = []
-        try:
-            db_records = []
-            table_records = airtable_client.get_all_records(table_name)
-            for record in table_records:
-                record = {
-                    **{"airtable_id": record["id"]},
-                    **record["fields"],
-                    **{"airtable_createdTime": record["createdTime"]},
-                }
-                records.append(record)
-                db_records.append(record)
-                if sqlite and len(db_records) == 100:
-                    sql_repository.write(table_name, db_records)
-                    db_records = []
-        except HTTPError as exc:
-            raise click.ClickException(exc)
+        db_records = []
+        table_records = airtable_client.get_all_records(table_name)
+        for record in table_records:
+            record = {
+                **{"airtable_id": record["id"]},
+                **record["fields"],
+                **{"airtable_createdTime": record["createdTime"]},
+            }
+            records.append(record)
+            db_records.append(record)
+            if sqlite and len(db_records) == 100:
+                sql_repository.write(table_name, db_records)
+                db_records = []
         if sqlite:
             sql_repository.write(table_name, db_records)
         filenames = []

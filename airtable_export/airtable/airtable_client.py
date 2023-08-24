@@ -1,4 +1,7 @@
 import time
+import click
+
+from httpx import HTTPError
 from urllib.parse import quote, urlencode
 
 
@@ -10,16 +13,20 @@ class AirtableClient:
         self.user_agent = user_agent
 
     def get_all_records(self, table_name):
+        try:
+            yield from self._get_all_records(table_name)
+        except HTTPError as exception:
+            raise click.ClickException(exception) from exception
+
+    def _get_all_records(self, table_name):
         headers = {"Authorization": f"Bearer {self.api_key}"}
         if self.user_agent is not None:
             headers["user-agent"] = self.user_agent
-
         if self.http_read_timeout:
             timeout = httpx.Timeout(5, read=self.http_read_timeout)
             client = httpx.Client(timeout=timeout)
         else:
             client = httpx
-
         first = True
         offset = None
         while first or offset:
