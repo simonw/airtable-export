@@ -11,6 +11,6 @@ class CsvExporter:
             header = records[0].keys()
             writer.writerow(header)
             for record in records:
-                data = [f"{value}" for value in record.values()]
+                data = [value for value in record.values()]
                 writer.writerow(data)
         return csv_filepath.name
