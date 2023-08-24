@@ -14,7 +14,16 @@ class AirtableClient:
 
     def get_all_records(self, table_name):
         try:
-            yield from self._get_all_records(table_name)
+            table_records = self._get_all_records(table_name)
+            records = []
+            for record in table_records:
+                record = {
+                    **{"airtable_id": record["id"]},
+                    **record["fields"],
+                    **{"airtable_createdTime": record["createdTime"]},
+                }
+                records.append(record)
+            return records
         except HTTPError as exception:
             raise click.ClickException(exception) from exception
 

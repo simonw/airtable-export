@@ -59,26 +59,10 @@ def cli(
     if sqlite:
         path_sqlite = file_path / sqlite
         sql_repository = SqlLiteRepository(path_sqlite)
-    any_export_format_selected = any(x for x in [is_json, is_ndjson, is_yaml, sqlite])
-    if any_export_format_selected:
-        is_yaml = True
     for table_name in tables:
-        records = []
-        db_records = []
-        table_records = airtable_client.get_all_records(table_name)
-        for record in table_records:
-            record = {
-                **{"airtable_id": record["id"]},
-                **record["fields"],
-                **{"airtable_createdTime": record["createdTime"]},
-            }
-            records.append(record)
-            db_records.append(record)
-            if sqlite and len(db_records) == 100:
-                sql_repository.write(table_name, db_records)
-                db_records = []
+        records = airtable_client.get_all_records(table_name)
         if sqlite:
-            sql_repository.write(table_name, db_records)
+            sql_repository.write(table_name, records)
         filenames = []
         if is_json:
             json_file = JsonExporter.generate_file(file_path, records, table_name)
@@ -86,7 +70,7 @@ def cli(
         if is_ndjson:
             nd_json_file = NDJsonExporter.generate_file(file_path, records, table_name)
             filenames.append(nd_json_file)
-        if is_yaml:
+        if is_yaml or (not filenames and not sqlite):
             yaml_file = YamlExporter.generate_file(file_path, records, table_name)
             filenames.append(yaml_file)
         if verbose:
