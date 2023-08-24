@@ -1,12 +1,12 @@
 import click
 import httpx
 from httpx import HTTPError
-import json as json_
+import json
 import pathlib
 from urllib.parse import quote, urlencode
 import sqlite_utils
 import time
-import yaml as yaml_
+import yaml
 
 
 @click.command()
@@ -46,71 +46,90 @@ def cli(
     http_read_timeout,
     user_agent,
     verbose,
-    json,
-    ndjson,
-    yaml,
+    is_json,
+    is_ndjson,
+    is_yaml,
     sqlite,
 ):
-    "Export Airtable data to YAML file on disk"
+    # Export Airtable data to JSON/YAML/SQL-Lite file on disk
     output = pathlib.Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
-    if not json and not ndjson and not yaml and not sqlite:
-        yaml = True
-    write_batch = lambda table, batch: None
+    if any(x for x in [is_json, is_ndjson, is_yaml, sqlite]):
+        is_yaml = True
     if sqlite:
-        db = sqlite_utils.Database(sqlite)
-        write_batch = lambda table, batch: db[table].insert_all(
-            db_batch, pk="airtable_id", replace=True, alter=True
-        )
-    for table in tables:
+        sqlite_filepath = output / sqlite
+        db = sqlite_utils.Database(sqlite_filepath)
+    for table_name in tables:
         records = []
         try:
-            db_batch = []
-            for record in all_records(
-                base_id, table, key, http_read_timeout, user_agent=user_agent
-            ):
-                r = {
+            db_records = []
+            table_records = get_all_table_records(base_id, table_name, key, http_read_timeout, user_agent)
+            for record in table_records:
+                record = {
                     **{"airtable_id": record["id"]},
                     **record["fields"],
                     **{"airtable_createdTime": record["createdTime"]},
                 }
-                records.append(r)
-                db_batch.append(r)
-                if len(db_batch) == 100:
-                    write_batch(table, db_batch)
-                    db_batch = []
+                records.append(record)
+                db_records.append(record)
+                if sqlite and len(db_records) == 100:
+                    write_batch(db, table_name, db_records)
+                    db_records = []
         except HTTPError as exc:
             raise click.ClickException(exc)
-        write_batch(table, db_batch)
+        write_batch(db, table_name, db_records)
         filenames = []
-        if json:
-            filename = "{}.json".format(table)
-            dumped = json_.dumps(records, sort_keys=True, indent=4)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
-        if ndjson:
-            filename = "{}.ndjson".format(table)
-            dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
-        if yaml:
-            filename = "{}.yml".format(table)
-            dumped = yaml_.dump(records, sort_keys=True)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
+        if is_json:
+            json_file = generate_json_file(output, records, table_name)
+            filenames.append(json_file)
+        if is_ndjson:
+            nd_json_file = generate_nd_json_file(output, records, table_name)
+            filenames.append(nd_json_file)
+        if is_yaml:
+            yaml_file = generate_yaml_file(output, records, table_name)
+            filenames.append(yaml_file)
         if verbose:
-            click.echo(
-                "Wrote {} record{} to {}".format(
-                    len(records),
-                    "" if len(records) == 1 else "s",
-                    ", ".join(map(str, filenames)),
-                ),
-                err=True,
-            )
+            filenames_seperated_by_comma = ", ".join(filenames)
+            number_of_records = len(records)
+            log_records(number_of_records, filenames_seperated_by_comma)
 
 
-def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agent=None):
-    headers = {"Authorization": "Bearer {}".format(api_key)}
+def write_batch(db, table_name, records):
+    db[table_name].insert_all(records, pk="airtable_id", replace=True, alter=True)
+
+
+def log_records(filenames, number_of_records):
+    human_friendly_records = "record" if number_of_records == 1 else "records"
+    log_message = f"Wrote {number_of_records} {human_friendly_records} to {filenames}"
+    click.echo(log_message, err=True)
+
+
+def generate_yaml_file(output, records, table_name):
+    filename = f"{table_name}.yml"
+    dumped = yaml.dump(records, sort_keys=True)
+    yaml_filepath = output / filename
+    yaml_filepath.write_text(dumped, "utf-8")
+    return yaml_filepath
+
+
+def generate_nd_json_file(output, records, table_name):
+    filename = f"{table_name}.ndjson"
+    dumped = "\n".join(json.dumps(r, sort_keys=True) for r in records)
+    ndjson_filepath = output / filename
+    ndjson_filepath.write_text(dumped, "utf-8")
+    return ndjson_filepath
+
+
+def generate_json_file(output, records, table_name):
+    filename = f"{table_name}.json"
+    dumped = json.dumps(records, sort_keys=True, indent=4)
+    json_filepath = output / filename
+    json_filepath.write_text(dumped, "utf-8")
+    return json_filepath
+
+
+def get_all_table_records(base_id, table, api_key, http_read_timeout, user_agent=None):
+    headers = {"Authorization": f"Bearer {api_key}"}
     if user_agent is not None:
         headers["user-agent"] = user_agent
 
@@ -124,16 +143,16 @@ def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agen
     offset = None
     while first or offset:
         first = False
-        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
+        url = f"https://api.airtable.com/v0/{base_id}/{quote(table)}"
         if offset:
             url += "?" + urlencode({"offset": offset})
         response = client.get(url, headers=headers)
         response.raise_for_status()
-        data = response.json()
-        offset = data.get("offset")
-        yield from data["records"]
-        if offset and sleep:
-            time.sleep(sleep)
+        json_data = response.json()
+        offset = json_data.get("offset")
+        yield from json_data["records"]
+        if offset:
+            time.sleep(0.2)
 
 
 def str_representer(dumper, data):
@@ -145,4 +164,4 @@ def str_representer(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
 
-yaml_.add_representer(str, str_representer)
+yaml.add_representer(str, str_representer)

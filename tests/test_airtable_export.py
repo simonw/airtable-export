@@ -6,7 +6,7 @@ import sqlite_utils
 
 FORMATS = [
     (
-        "yaml",
+        "yml",
         """
 - address: |-
     Address line 1
@@ -79,12 +79,13 @@ def mocked(mocker):
     m.get.return_value.json.return_value = AIRTABLE_RESPONSE
 
 
-@pytest.mark.parametrize("format,expected", FORMATS)
-def test_airtable_export(mocked, format, expected):
+@pytest.mark.parametrize("file_format,expected", FORMATS)
+def test_airtable_export(mocked, file_format, expected):
     runner = CliRunner()
+    file_directory = "/tmp/dump"
     with runner.isolated_filesystem():
         args = [
-            ".",
+            file_directory,
             "appZOGvNJPXCQ205F",
             "tablename",
             "-v",
@@ -97,23 +98,18 @@ def test_airtable_export(mocked, format, expected):
             args,
         )
         assert 0 == result.exit_code
-        assert (
-            "Wrote 2 records to tablename.{}".format(
-                "yml" if format == "yaml" else format
-            )
-            == result.output.strip()
-        )
-        actual = open(
-            "tablename.{}".format("yml" if format == "yaml" else format)
-        ).read()
+        assert (f"Wrote 2 records to tablename.{file_format}" == result.output.strip())
+        actual = open(f"{file_directory}/tablename.{file_format}").read()
         assert expected.strip() == actual.strip()
 
 
-def test_all_three_formats_at_once(mocked):
+@pytest.mark.parametrize("file_format,expected", FORMATS)
+def test_all_three_formats_at_once(mocked, file_format, expected):
     runner = CliRunner()
+    file_directory = "/tmp/dump"
     with runner.isolated_filesystem():
         args = [
-            ".",
+            file_directory,
             "appZOGvNJPXCQ205F",
             "tablename",
             "-v",
@@ -128,32 +124,28 @@ def test_all_three_formats_at_once(mocked):
             args,
         )
         assert 0 == result.exit_code, result.stdout
-        assert (
-            "Wrote 2 records to tablename.json, tablename.ndjson, tablename.yml"
-            == result.output.strip()
-        )
-        for format, expected in FORMATS:
-            actual = open(
-                "tablename.{}".format("yml" if format == "yaml" else format)
-            ).read()
-            assert expected.strip() == actual.strip()
+        assert ("Wrote 2 records to tablename.json, tablename.ndjson, tablename.yml" == result.output.strip())
+        actual = open(f"{file_directory}/tablename.{file_format}").read()
+        assert expected.strip() == actual.strip()
 
 
 def test_airtable_sqlite(mocked):
     runner = CliRunner()
+    file_directory = "/tmp/dump"
+    sql_filename = "test.db"
     with runner.isolated_filesystem():
         args = [
-            ".",
+            file_directory,
             "appZOGvNJPXCQ205F",
             "tablename",
             "--key",
             "x",
             "--sqlite",
-            "test.db",
+            sql_filename,
         ]
         result = runner.invoke(cli.cli, args, catch_exceptions=False)
         assert 0 == result.exit_code, result.stdout
-        db = sqlite_utils.Database("test.db")
+        db = sqlite_utils.Database(f"{file_directory}/{sql_filename}")
         assert db.table_names() == ["tablename"]
         assert list(db["tablename"].rows) == [
             {
