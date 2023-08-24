@@ -1,12 +1,15 @@
 import click
-import httpx
-from httpx import HTTPError
-import json as json_
 import pathlib
-from urllib.parse import quote, urlencode
-import sqlite_utils
-import time
+
 import yaml as yaml_
+
+from airtable_export.airtable.airtable_client import AirtableClient
+from airtable_export.logger.click_logger import ClickLogger
+from airtable_export.exporter.json_exporter import JsonExporter
+from airtable_export.exporter.nd_json_exporter import NDJsonExporter
+from airtable_export.sql.sql_repository import SqlLiteRepository
+from airtable_export.exporter.yaml_exporter import YamlExporter
+from airtable_export.exporter.csv_exporter import CsvExporter
 
 
 @click.command()
@@ -29,7 +32,7 @@ import yaml as yaml_
     type=int,
 )
 @click.option("--user-agent", help="User agent to use for requests")
-@click.option("-v", "--verbose", is_flag=True, help="Verbose output")
+@click.option("-v", "--verbose", is_flag=True, help="Verbose file_path")
 @click.option("--json", is_flag=True, help="JSON format")
 @click.option("--ndjson", is_flag=True, help="Newline delimited JSON format")
 @click.option("--yaml", is_flag=True, help="YAML format (default)")
@@ -38,6 +41,7 @@ import yaml as yaml_
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     help="Export to this SQLite database",
 )
+@click.option("--csv", is_flag=True, help="CSV format")
 def cli(
     output_path,
     base_id,
@@ -50,99 +54,40 @@ def cli(
     ndjson,
     yaml,
     sqlite,
+    csv
 ):
-    "Export Airtable data to YAML file on disk"
-    output = pathlib.Path(output_path)
-    output.mkdir(parents=True, exist_ok=True)
-    if not json and not ndjson and not yaml and not sqlite:
+    # Export Airtable data to JSON/YAML/SQL-Lite file on disk
+    file_path = pathlib.Path(output_path)
+    file_path.mkdir(parents=True, exist_ok=True)
+    airtable_client = AirtableClient(base_id, key, http_read_timeout, user_agent)
+    logger = ClickLogger()
+    if not json and not ndjson and not yaml and not sqlite and not csv:
         yaml = True
-    write_batch = lambda table, batch: None
     if sqlite:
-        db = sqlite_utils.Database(sqlite)
-        write_batch = lambda table, batch: db[table].insert_all(
-            db_batch, pk="airtable_id", replace=True, alter=True
-        )
-    for table in tables:
-        records = []
-        try:
-            db_batch = []
-            for record in all_records(
-                base_id, table, key, http_read_timeout, user_agent=user_agent
-            ):
-                r = {
-                    **{"airtable_id": record["id"]},
-                    **record["fields"],
-                    **{"airtable_createdTime": record["createdTime"]},
-                }
-                records.append(r)
-                db_batch.append(r)
-                if len(db_batch) == 100:
-                    write_batch(table, db_batch)
-                    db_batch = []
-        except HTTPError as exc:
-            raise click.ClickException(exc)
-        write_batch(table, db_batch)
+        path_sqlite = file_path / sqlite
+        sql_repository = SqlLiteRepository(path_sqlite)
+
+    for table_name in tables:
+        records = airtable_client.get_all_records(table_name)
+
+        if sqlite:
+            sql_repository.write(table_name, records)
+
         filenames = []
         if json:
-            filename = "{}.json".format(table)
-            dumped = json_.dumps(records, sort_keys=True, indent=4)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
+            json_file = JsonExporter.generate_file(file_path, records, table_name)
+            filenames.append(json_file)
         if ndjson:
-            filename = "{}.ndjson".format(table)
-            dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
+            nd_json_file = NDJsonExporter.generate_file(file_path, records, table_name)
+            filenames.append(nd_json_file)
         if yaml:
-            filename = "{}.yml".format(table)
-            dumped = yaml_.dump(records, sort_keys=True)
-            (output / filename).write_text(dumped, "utf-8")
-            filenames.append(output / filename)
+            yaml_file = YamlExporter.generate_file(file_path, records, table_name)
+            filenames.append(yaml_file)
+        if csv:
+            csv_file = CsvExporter.generate_file(file_path, records, table_name)
+            filenames.append(csv_file)
         if verbose:
-            click.echo(
-                "Wrote {} record{} to {}".format(
-                    len(records),
-                    "" if len(records) == 1 else "s",
-                    ", ".join(map(str, filenames)),
-                ),
-                err=True,
-            )
+            logger.log(records, filenames)
 
 
-def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agent=None):
-    headers = {"Authorization": "Bearer {}".format(api_key)}
-    if user_agent is not None:
-        headers["user-agent"] = user_agent
-
-    if http_read_timeout:
-        timeout = httpx.Timeout(5, read=http_read_timeout)
-        client = httpx.Client(timeout=timeout)
-    else:
-        client = httpx
-
-    first = True
-    offset = None
-    while first or offset:
-        first = False
-        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
-        if offset:
-            url += "?" + urlencode({"offset": offset})
-        response = client.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        offset = data.get("offset")
-        yield from data["records"]
-        if offset and sleep:
-            time.sleep(sleep)
-
-
-def str_representer(dumper, data):
-    try:
-        if "\n" in data:
-            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-    except TypeError:
-        pass
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-
-yaml_.add_representer(str, str_representer)
+yaml_.add_representer(str, YamlExporter.presenter)
