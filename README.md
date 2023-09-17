@@ -15,10 +15,10 @@ Install this tool using `pip`:
 
 ## Usage
 
-You will need to know the following information:
+You will need to the following information:
 
 - Your Airtable base ID - this is a string starting with `app...`
-- Your Airtable API key - this is a string starting with `key...`
+- Your Airtable personal access token - this is a string starting with `pat...`
 - The names of each of the tables that you wish to export
 
 You can export all of your data to a folder called `export/` by running the following:
