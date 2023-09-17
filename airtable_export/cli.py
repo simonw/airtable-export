@@ -124,7 +124,7 @@ def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agen
     offset = None
     while first or offset:
         first = False
-        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table))
+        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table, safe=''))
         if offset:
             url += "?" + urlencode({"offset": offset})
         response = client.get(url, headers=headers)
