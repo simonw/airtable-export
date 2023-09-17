@@ -19,15 +19,20 @@ You will need to the following information:
 
 - Your Airtable base ID - this is a string starting with `app...`
 - Your Airtable personal access token - this is a string starting with `pat...`
-- The names of each of the tables that you wish to export
+
+If you just want to export a subset of your tables you also need to know the names of those tables.
 
 You can export all of your data to a folder called `export/` by running the following:
 
-    airtable-export export base_id table1 table2 --key=key
+    airtable-export export base_id --key=key
 
-This example would create two files: `export/table1.yml` and `export/table2.yml`.
+This example would files for each of your tables, for example: `export/table1.yml` and `export/table2.yml`.
 
 Rather than passing the API key using the `--key` option you can set it as an environment variable called `AIRTABLE_KEY`.
+
+To export only specified tables, pass their names as additional arguments:
+
+    airtable-export export base_id table1 table2 --key=key
 
 ## Export options
 
@@ -35,18 +40,18 @@ By default the tool exports your data as YAML.
 
 You can also export as JSON or as [newline delimited JSON](http://ndjson.org/) using the `--json` or `--ndjson` options:
 
-    airtable-export export base_id table1 table2 --key=key --ndjson
+    airtable-export export base_id --key=key --ndjson
 
 You can pass multiple format options at once. This command will create a `.json`, `.yml` and `.ndjson` file for each exported table:
 
-    airtable-export export base_id table1 table2 \
+    airtable-export export base_id \
         --key=key --ndjson --yaml --json
 
 ### SQLite database export
 
 You can export tables to a SQLite database file using the `--sqlite database.db` option:
 
-    airtable-export export base_id table1 table2 \
+    airtable-export export base_id \
         --key=key --sqlite database.db
 
 This can be combined with other format options. If you only specify `--sqlite` the export directory argument will be ignored.

@@ -72,26 +72,44 @@ def test_version():
 
 
 @pytest.fixture
-def mocked(mocker):
-    m = mocker.patch.object(cli, "httpx")
-    m.get.return_value = mocker.Mock()
-    m.get.return_value.status_code = 200
-    m.get.return_value.json.return_value = AIRTABLE_RESPONSE
+def mock_table(httpx_mock):
+    httpx_mock.add_response(
+        url="https://api.airtable.com/v0/appZOGvNJPXCQ205F/tablename",
+        json=AIRTABLE_RESPONSE,
+    )
+
+
+@pytest.fixture
+def mock_table_list(httpx_mock):
+    httpx_mock.add_response(
+        url="https://api.airtable.com/v0/meta/bases/appZOGvNJPXCQ205F/tables",
+        json={"tables": [{"id": "tbl123", "name": "tablename"}]},
+    )
 
 
 @pytest.mark.parametrize("format,expected", FORMATS)
-def test_airtable_export(mocked, format, expected):
+@pytest.mark.parametrize("table_arguments", [["tablename"], []])
+def test_airtable_export(mock_table, httpx_mock, format, expected, table_arguments):
+    if not table_arguments:
+        httpx_mock.add_response(
+            url="https://api.airtable.com/v0/meta/bases/appZOGvNJPXCQ205F/tables",
+            json={"tables": [{"id": "tbl123", "name": "tablename"}]},
+        )
     runner = CliRunner()
     with runner.isolated_filesystem():
-        args = [
-            ".",
-            "appZOGvNJPXCQ205F",
-            "tablename",
-            "-v",
-            "--key",
-            "x",
-            "--{}".format(format),
-        ]
+        args = (
+            [
+                ".",
+                "appZOGvNJPXCQ205F",
+            ]
+            + table_arguments
+            + [
+                "-v",
+                "--key",
+                "x",
+                "--{}".format(format),
+            ]
+        )
         result = runner.invoke(
             cli.cli,
             args,
@@ -109,7 +127,7 @@ def test_airtable_export(mocked, format, expected):
         assert expected.strip() == actual.strip()
 
 
-def test_all_three_formats_at_once(mocked):
+def test_all_three_formats_at_once(mock_table):
     runner = CliRunner()
     with runner.isolated_filesystem():
         args = [
@@ -139,7 +157,7 @@ def test_all_three_formats_at_once(mocked):
             assert expected.strip() == actual.strip()
 
 
-def test_airtable_sqlite(mocked):
+def test_airtable_sqlite(mock_table):
     runner = CliRunner()
     with runner.isolated_filesystem():
         args = [
@@ -177,18 +195,15 @@ def test_airtable_sqlite(mocked):
         ]
 
 
-def test_airtable_export_error(mocker):
-    m = mocker.patch.object(cli, "httpx")
-    m.get.return_value = mocker.Mock()
-    m.get.return_value.status_code = 401
-    m.get.return_value.raise_for_status.side_effect = httpx.HTTPError("Unauthorized")
+def test_airtable_export_error(httpx_mock):
+    httpx_mock.add_response(status_code=401)
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(
             cli.cli, [".", "appZOGvNJPXCQ205F", "tablename", "-v", "--key", "x"]
         )
         assert result.exit_code == 1
-        assert result.stdout == "Error: Unauthorized\n"
+        assert "401 Unauthorized" in result.output
 
 
 AIRTABLE_RESPONSE = {

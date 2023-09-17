@@ -60,8 +60,15 @@ def cli(
     if sqlite:
         db = sqlite_utils.Database(sqlite)
         write_batch = lambda table, batch: db[table].insert_all(
-            db_batch, pk="airtable_id", replace=True, alter=True
+            batch, pk="airtable_id", replace=True, alter=True
         )
+    if not tables:
+        # Fetch all tables
+        tables = [
+            table["name"]
+            for table in list_tables(base_id, key, user_agent=user_agent)["tables"]
+        ]
+
     for table in tables:
         records = []
         try:
@@ -109,6 +116,14 @@ def cli(
             )
 
 
+def list_tables(base_id, api_key, user_agent=None):
+    url = f"https://api.airtable.com/v0/meta/bases/{base_id}/tables"
+    headers = {"Authorization": "Bearer {}".format(api_key)}
+    if user_agent is not None:
+        headers["user-agent"] = user_agent
+    return httpx.get(url, headers=headers).json()
+
+
 def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agent=None):
     headers = {"Authorization": "Bearer {}".format(api_key)}
     if user_agent is not None:
@@ -124,7 +139,7 @@ def all_records(base_id, table, api_key, http_read_timeout, sleep=0.2, user_agen
     offset = None
     while first or offset:
         first = False
-        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table, safe=''))
+        url = "https://api.airtable.com/v0/{}/{}".format(base_id, quote(table, safe=""))
         if offset:
             url += "?" + urlencode({"offset": offset})
         response = client.get(url, headers=headers)
