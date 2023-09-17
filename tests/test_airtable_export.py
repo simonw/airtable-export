@@ -1,6 +1,6 @@
 from click.testing import CliRunner
 from airtable_export import cli
-import httpx
+import pathlib
 import pytest
 import sqlite_utils
 
@@ -88,9 +88,11 @@ def mock_table_list(httpx_mock):
 
 
 @pytest.mark.parametrize("format,expected", FORMATS)
-@pytest.mark.parametrize("table_arguments", [["tablename"], []])
-def test_airtable_export(mock_table, httpx_mock, format, expected, table_arguments):
-    if not table_arguments:
+@pytest.mark.parametrize(
+    "extra_arguments", [["tablename"], [], ["tablename", "--schema"]]
+)
+def test_airtable_export(mock_table, httpx_mock, format, expected, extra_arguments):
+    if not extra_arguments or "--schema" in extra_arguments:
         httpx_mock.add_response(
             url="https://api.airtable.com/v0/meta/bases/appZOGvNJPXCQ205F/tables",
             json={"tables": [{"id": "tbl123", "name": "tablename"}]},
@@ -102,7 +104,7 @@ def test_airtable_export(mock_table, httpx_mock, format, expected, table_argumen
                 ".",
                 "appZOGvNJPXCQ205F",
             ]
-            + table_arguments
+            + extra_arguments
             + [
                 "-v",
                 "--key",
@@ -125,6 +127,12 @@ def test_airtable_export(mock_table, httpx_mock, format, expected, table_argumen
             "tablename.{}".format("yml" if format == "yaml" else format)
         ).read()
         assert expected.strip() == actual.strip()
+        if not extra_arguments or "--schema" in extra_arguments:
+            # Check schema was saved
+            assert (pathlib.Path(".") / "_schema.json").exists()
+            assert open("_schema.json").read()[0] == "{"
+        else:
+            assert not (pathlib.Path(".") / "_schema.json").exists()
 
 
 def test_all_three_formats_at_once(mock_table):

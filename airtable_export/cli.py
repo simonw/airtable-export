@@ -38,6 +38,11 @@ import yaml as yaml_
     type=click.Path(file_okay=True, dir_okay=False, allow_dash=False),
     help="Export to this SQLite database",
 )
+@click.option(
+    "--schema",
+    is_flag=True,
+    help="Save Airtable schema to output_path/_schema.json",
+)
 def cli(
     output_path,
     base_id,
@@ -50,6 +55,7 @@ def cli(
     ndjson,
     yaml,
     sqlite,
+    schema,
 ):
     "Export Airtable data to YAML file on disk"
     output = pathlib.Path(output_path)
@@ -62,12 +68,13 @@ def cli(
         write_batch = lambda table, batch: db[table].insert_all(
             batch, pk="airtable_id", replace=True, alter=True
         )
-    if not tables:
+    if not tables or schema:
         # Fetch all tables
-        tables = [
-            table["name"]
-            for table in list_tables(base_id, key, user_agent=user_agent)["tables"]
-        ]
+        schema_data = list_tables(base_id, key, user_agent=user_agent)
+        dumped_schema = json_.dumps(schema_data, sort_keys=True, indent=4)
+        (output / "_schema.json").write_text(dumped_schema, "utf-8")
+        if not tables:
+            tables = [table["name"] for table in schema_data["tables"]]
 
     for table in tables:
         records = []

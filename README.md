@@ -47,6 +47,8 @@ You can pass multiple format options at once. This command will create a `.json`
     airtable-export export base_id \
         --key=key --ndjson --yaml --json
 
+If you import all tables, or if you add the `--schema` option, a JSON schema for the base will be written to `output-dir/_schema.json`.
+
 ### SQLite database export
 
 You can export tables to a SQLite database file using the `--sqlite database.db` option:
