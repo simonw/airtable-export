@@ -181,9 +181,7 @@ def test_airtable_export_error(mocker):
     m = mocker.patch.object(cli, "httpx")
     m.get.return_value = mocker.Mock()
     m.get.return_value.status_code = 401
-    m.get.return_value.raise_for_status.side_effect = httpx.HTTPError(
-        "Unauthorized", request=None
-    )
+    m.get.return_value.raise_for_status.side_effect = httpx.HTTPError("Unauthorized")
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(
