@@ -104,6 +104,13 @@ jobs:
     steps:
     - name: Check out repo
       uses: actions/checkout@v2
+      # in case you forked airtable-export to a public repository and prefer to have the backups in a private one
+      # add a personal access token as github secret named ACCESSTOKEN
+      # otherwise just remove the following 'with' section
+      with:
+        repository: 'mygithubname/my_backup_repository'
+        ref: 'main'
+        token: ${{ secrets.accesstoken }}
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
