@@ -96,19 +96,22 @@ def cli(
         except HTTPError as exc:
             raise click.ClickException(exc)
         write_batch(table, db_batch)
+        # Keep table labels separate from filesystem paths. Escape % first
+        # so a literal "%2F" cannot collide with an encoded slash.
+        file_stem = table.replace("%", "%25").replace("/", "%2F").replace("\\", "%5C")
         filenames = []
         if json:
-            filename = "{}.json".format(table)
+            filename = "{}.json".format(file_stem)
             dumped = json_.dumps(records, sort_keys=True, indent=4)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)
         if ndjson:
-            filename = "{}.ndjson".format(table)
+            filename = "{}.ndjson".format(file_stem)
             dumped = "\n".join(json_.dumps(r, sort_keys=True) for r in records)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)
         if yaml:
-            filename = "{}.yml".format(table)
+            filename = "{}.yml".format(file_stem)
             dumped = yaml_.dump(records, sort_keys=True)
             (output / filename).write_text(dumped, "utf-8")
             filenames.append(output / filename)

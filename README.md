@@ -49,6 +49,19 @@ You can pass multiple format options at once. This command will create a `.json`
 
 If you import all tables, or if you add the `--schema` option, a JSON schema for the base will be written to `output-dir/_schema.json`.
 
+### Table names in export filenames
+
+File exports encode `/` as `%2F`, `\` as `%5C`, and literal `%` as `%25`.
+For example, `Sales/2026` is saved as `Sales%2F2026.json`, while a table
+literally named `Sales%2F2026` is saved as `Sales%252F2026.json`.
+Ordinary names (including spaces and Unicode) are unchanged. Existing files
+using literal percent signs are not renamed or deleted; scripts consuming those
+filenames need to use the encoded names on the next export.
+
+API table names and SQLite table names are unchanged. This prevents separators
+from becoming output subdirectories; it is not a general cross-platform filename
+normalizer (for example, Windows reserved names still require a table ID or rename).
+
 ### SQLite database export
 
 You can export tables to a SQLite database file using the `--sqlite database.db` option:
